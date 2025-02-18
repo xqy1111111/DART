@@ -1,15 +1,28 @@
 #!/bin/bash
 
+export CUDA_VISIBLE_DEVICES=0
+
+CKPT=YOUR_MODEL_PATH
+MODEL=llava-v1.5-7b
+
 SPLIT="mmbench_dev_cn_20231003"
 
 python -m llava.eval.model_vqa_mmbench \
-    --model-path liuhaotian/llava-v1.5-13b \
+    --model-path $CKPT \
     --question-file ./playground/data/eval/mmbench_cn/$SPLIT.tsv \
-    --answers-file ./playground/data/eval/mmbench_cn/answers/$SPLIT/llava-v1.5-13b.jsonl \
+    --answers-file ./playground/data/eval/mmbench_cn/answers/$SPLIT/$MODEL.jsonl \
     --lang cn \
     --single-pred-prompt \
     --temperature 0 \
-    --conv-mode vicuna_v1
+    --conv-mode vicuna_v1 \
+    --sparse \
+    --attn_implementation sdpa \
+    --pruned_layer 2 \
+    --image_token_start_index 35 \
+    --image_token_length 576 \
+    --reduction_ratio 0.778 \
+    --pivot_image_token 4 \
+    --pivot_text_token 4 
 
 mkdir -p playground/data/eval/mmbench/answers_upload/$SPLIT
 
@@ -17,4 +30,4 @@ python scripts/convert_mmbench_for_submission.py \
     --annotation-file ./playground/data/eval/mmbench_cn/$SPLIT.tsv \
     --result-dir ./playground/data/eval/mmbench_cn/answers/$SPLIT \
     --upload-dir ./playground/data/eval/mmbench_cn/answers_upload/$SPLIT \
-    --experiment llava-v1.5-13b
+    --experiment $MODEL

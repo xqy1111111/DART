@@ -1,23 +1,35 @@
 #!/bin/bash
 
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+
 gpu_list="${CUDA_VISIBLE_DEVICES:-0}"
 IFS=',' read -ra GPULIST <<< "$gpu_list"
 
 CHUNKS=${#GPULIST[@]}
 
-CKPT="llava-v1.5-13b"
+CKPT="llava-v1.5-7b"
+MODEL=YOUR_MODEL_PATH
+
 SPLIT="llava_gqa_testdev_balanced"
 GQADIR="./playground/data/eval/gqa/data"
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
     CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} python -m llava.eval.model_vqa_loader \
-        --model-path liuhaotian/llava-v1.5-13b \
+        --model-path $MODEL \
         --question-file ./playground/data/eval/gqa/$SPLIT.jsonl \
         --image-folder ./playground/data/eval/gqa/data/images \
         --answers-file ./playground/data/eval/gqa/answers/$SPLIT/$CKPT/${CHUNKS}_${IDX}.jsonl \
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
         --temperature 0 \
+        --sparse \
+        --attn_implementation sdpa \
+        --pruned_layer 2 \
+        --image_token_start_index 35 \
+        --image_token_length 576 \
+        --reduction_ratio 0.778 \
+        --pivot_image_token 4 \
+        --pivot_text_token 4 \
         --conv-mode vicuna_v1 &
 done
 

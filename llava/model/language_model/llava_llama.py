@@ -17,25 +17,32 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
+import logging
+import math
+import warnings
 
-from transformers import AutoConfig, AutoModelForCausalLM, \
-                         LlamaConfig, LlamaModel, LlamaForCausalLM
+
+
+# from transformers import AutoConfig, AutoModelForCausalLM, \
+#                          LlamaModel, LlamaForCausalLM
+from transformers import AutoConfig, AutoModelForCausalLM
+from .configuration_llama import LlamaConfig
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.generation.utils import GenerateOutput
 
+
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
-
-from .modeling_llama_self import (
-    DART_K_norm
-    )
+from .modeling_llama_self import LlamaForCausalLM, DART
 
 
+# --------------------LLaVA------------------------------
 class LlavaConfig(LlamaConfig):
     model_type = "llava_llama"
 
 
-class LlavaLlamaModel(LlavaMetaModel, DART_K_norm): # HACK: LlamaModel -> DART_K_norm
+class LlavaLlamaModel(LlavaMetaModel, DART): # ! change your method here
     config_class = LlavaConfig
 
     def __init__(self, config: LlamaConfig):

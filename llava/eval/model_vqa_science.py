@@ -14,6 +14,24 @@ from llava.mm_utils import tokenizer_image_token, process_images, get_model_name
 from PIL import Image
 import math
 
+def configure_DART(model, args):
+
+    if args.sparse:
+        DART_config = {
+            "K": args.pruned_layer,
+            "image_token_start_index": args.image_token_start_index, 
+            "image_token_length": args.image_token_length,
+            "max_num_trunction": args.max_num_trunction,
+            "reduction_ratio": args.reduction_ratio,
+            "retain_token_num_for_llava_next": args.retain_token_num_for_llava_next,
+            "pivot_image_token": args.pivot_image_token,
+            "pivot_text_token": args.pivot_text_token,
+        }
+        model.config.DART_config = DART_config
+
+    else:
+        model.config.DART_config = None
+
 
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
@@ -31,7 +49,9 @@ def eval_model(args):
     disable_torch_init()
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name)
+    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name, attn_implementation=args.attn_implementation)
+
+    configure_DART(model, args) # HACK: configure DART
 
     questions = json.load(open(os.path.expanduser(args.question_file), "r"))
     questions = get_chunk(questions, args.num_chunks, args.chunk_idx)
@@ -58,6 +78,7 @@ def eval_model(args):
         else:
             images = None
             image_sizes = None
+            continue # HACK: evaluation on SQA_IMG
 
         if args.single_pred_prompt:
             qs = qs + '\n' + "Answer with the option's letter from the given choices directly."
@@ -106,6 +127,17 @@ if __name__ == "__main__":
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--answer-prompter", action="store_true")
     parser.add_argument("--single-pred-prompt", action="store_true")
+
+    parser.add_argument('--attn_implementation', type=str, default='flash_attention_2', help='attn_implementation')
+    parser.add_argument('--sparse', default=False, action='store_true', help='sparse')
+    parser.add_argument('--pruned_layer', default=2, type=int, help='prune_layer')
+    parser.add_argument('--image_token_start_index', type=int, default=35, help='image_token_start_index')
+    parser.add_argument('--image_token_length', type=int, default=576, help='image_token_length')
+    parser.add_argument('--max_num_trunction', type=int, default=128, help='max_num_trunction')
+    parser.add_argument('--reduction_ratio', type=float, default=0.778, help='retained_ratio')
+    parser.add_argument('--pivot_image_token', type=int, default=4, help='pivot_image_token')
+    parser.add_argument('--pivot_text_token', type=int, default=4, help='pivot_text_token')
+    parser.add_argument('--retain_token_num_for_llava_next', type=int, default=320, help='retain_token_num_for_llava_next')
     args = parser.parse_args()
 
     eval_model(args)

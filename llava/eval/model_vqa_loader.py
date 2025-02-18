@@ -168,6 +168,8 @@ if __name__ == "__main__":
     parser.add_argument('--image_token_length', type=int, default=576, help='image_token_length')
     parser.add_argument('--max_num_trunction', type=int, default=128, help='max_num_trunction')
     parser.add_argument('--reduction_ratio', type=float, default=0.778, help='retained_ratio')
+    parser.add_argument('--pivot_image_token', type=int, default=4, help='pivot_image_token')
+    parser.add_argument('--pivot_text_token', type=int, default=4, help='pivot_text_token')
     parser.add_argument('--retain_token_num_for_llava_next', type=int, default=320, help='retain_token_num_for_llava_next')
     args = parser.parse_args()
 

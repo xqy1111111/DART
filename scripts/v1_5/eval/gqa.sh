@@ -9,6 +9,8 @@ CHUNKS=${#GPULIST[@]}
 
 CKPT="llava-v1.5-7b"
 MODEL=YOUR_MODEL_PATH
+reduction_ratio=$1
+max_num_trunction=$2
 
 SPLIT="llava_gqa_testdev_balanced"
 GQADIR="./playground/data/eval/gqa/data"
@@ -27,7 +29,8 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
         --pruned_layer 2 \
         --image_token_start_index 35 \
         --image_token_length 576 \
-        --reduction_ratio 0.778 \
+        --reduction_ratio $reduction_ratio \
+        --max_num_trunction $max_num_trunction \
         --pivot_image_token 4 \
         --pivot_text_token 4 \
         --conv-mode vicuna_v1 &

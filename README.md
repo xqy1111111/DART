@@ -26,6 +26,9 @@ Qintong Zhang<sup>2,4</sup>, <br>
 
 
 ## 👀 Overview
+<p align='center'>
+<img src='./images/overview.png' alt='mask' width='1000px'>
+</p>
 
 
 ## 🛠 Preparation

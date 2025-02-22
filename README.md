@@ -77,6 +77,17 @@ CUDA_VISIBLE_DEVICES=0 bash scripts/v1_5/eval/mme.sh 0.778 128
 
 This project is released under the [Apache 2.0 license](LICENSE).
 
+## 📌 Citation
+
+Please consider citing our paper in your publications, if our findings help your research.
+```bibtex
+@article{wen2025stop,
+  title={Stop Looking for Important Tokens in Multimodal Language Models: Duplication Matters More},
+  author={Wen, Zichen and Gao, Yifeng and Wang, Shaobo and Zhang, Junyuan and Zhang, Qintong and Li, Weijia and He, Conghui and Zhang, Linfeng},
+  journal={arXiv preprint arXiv:2502.11494},
+  year={2025}
+}
+```
 
 
 ## 👍 Acknowledgment
@@ -84,5 +95,5 @@ We extend our gratitude to the open-source efforts of [LLaVA](https://github.com
 
 
 ## 📩 Contact
-For any question about our paper or code, please email `zichen.wen@outlook.com`.
+For any questions about our paper or code, please email `zichen.wen@outlook.com`.
 

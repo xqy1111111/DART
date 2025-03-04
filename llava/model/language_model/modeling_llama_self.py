@@ -3,7 +3,8 @@ from typing import Tuple, Callable
 from transformers import AutoConfig
 # from transformers.models.llama.modeling_llama import LlamaRMSNorm, LlamaDecoderLayer, LlamaModel, _prepare_4d_causal_attention_mask, _prepare_4d_causal_attention_mask_for_sdpa, Cache, DynamicCache
 from transformers.models.llama.modeling_llama import _prepare_4d_causal_attention_mask, _prepare_4d_causal_attention_mask_for_sdpa, Cache, DynamicCache
-from transformers.models.llama import LlamaConfig
+# from transformers.models.llama import LlamaConfig
+from .configuration_llama import LlamaConfig
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from typing import List, Optional, Tuple, Union
 import numpy as np

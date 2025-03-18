@@ -310,6 +310,8 @@ class DART(LlamaModel):
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
 
+        assert batch_size == 1, "batch_size > 1 requires changes to some implementation"
+
         for decoder_layer in self.layers:
 
             if output_hidden_states:

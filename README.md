@@ -92,8 +92,8 @@ CUDA_VISIBLE_DEVICES=0 bash scripts/v1_5/eval/mme.sh 0.778 128
 ### Qwen2-VL
 ### 🐝 Examples
 ```bash
-cd Qwen2-VL/eval_scripts
-bash lmms_eval.sh True [Reduction_Ratio]
+cd Qwen2-VL
+bash eval_scripts/lmms_eval.sh True [Reduction_Ratio]
 ```
 
 

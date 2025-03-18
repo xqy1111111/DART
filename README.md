@@ -115,7 +115,7 @@ Please consider citing our paper in your publications, if our findings help your
 
 
 ## 👍 Acknowledgment
-We extend our gratitude to the open-source efforts of [LLaVA](https://github.com/haotian-liu/LLaVA) and [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval).
+We extend our gratitude to the open-source efforts of [LLaVA](https://github.com/haotian-liu/LLaVA), [Qwen2-VL](https://github.com/QwenLM/Qwen2-VL), and [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval).
 
 
 

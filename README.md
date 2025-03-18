@@ -24,6 +24,10 @@ Qintong Zhang<sup>2,4</sup>, <br>
 [![arXiv](https://img.shields.io/badge/Arxiv-2502.11494-AD1C18.svg?logo=arXiv)](https://arxiv.org/pdf/2502.11494) 
 </div>
 
+## 🔥 News
+* **`2025.02.22`** 🤗🤗 We release our latest work [DART](https://arxiv.org/pdf/2502.11494), a plug-and-play, training-free token reduction method that seamlessly integrates with efficient attention operators. [Code](https://github.com/ZichenWen1/DART) is available!
+* **`2025.03.18`** 🤗🤗 We have released the implementation of DART for Qwen2-VL, and now you can easily evaluate it using [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval)!
+
 
 ## 👀 Overview
 <p align='center'>
@@ -34,7 +38,7 @@ Qintong Zhang<sup>2,4</sup>, <br>
  speed-up while maintaining performance and compatibility with efficient attention operators.
 
 ## 🛠 Preparation
-
+### LLaVA
 1. Clone this repository.
 
 ```bash
@@ -55,7 +59,18 @@ cd DART
 
 Please follow the detailed instruction in [LLaVA-Evaluation](https://github.com/haotian-liu/LLaVA/blob/main/docs/Evaluation.md).
 
+### Qwen2-VL
+```bash
+ conda create -n DART_Qwen2VL python=3.10 -y
+ conda activate DART_Qwen2VL
+ cd Qwen2-VL/transformers && pip install -e .
+ pip install accelerate qwen-vl-utils[decord]
+ pip install flash-attn --no-build-isolation
+ cd lmms-eval && pip install -e .
+```
+
 ## 🎯 Usage
+### LLaVA
 ### 📖 Script Templates
 ```shell
 bash scripts/v1_5/eval/[Benchmark].sh [Reduction_Ratio] [Max_Num_Trunction]
@@ -72,6 +87,13 @@ CUDA_VISIBLE_DEVICES=0 bash scripts/v1_5/eval/pope.sh 0.778 128
 
 ```Shell
 CUDA_VISIBLE_DEVICES=0 bash scripts/v1_5/eval/mme.sh 0.778 128
+```
+
+### Qwen2-VL
+### 🐝 Examples
+```bash
+cd Qwen2-VL/eval_scripts
+bash lmms_eval.sh True [Reduction_Ratio]
 ```
 
 
@@ -93,7 +115,8 @@ Please consider citing our paper in your publications, if our findings help your
 
 
 ## 👍 Acknowledgment
-We extend our gratitude to the open-source efforts of [LLaVA](https://github.com/haotian-liu/LLaVA).
+We extend our gratitude to the open-source efforts of [LLaVA](https://github.com/haotian-liu/LLaVA) and [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval).
+
 
 
 ## 📩 Contact

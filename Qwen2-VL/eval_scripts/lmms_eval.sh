@@ -1,6 +1,6 @@
 #!/bin/bash
 
-model_id="/mnt/petrelfs/wenzichen/hf_models/Qwen2-VL-7B-Instruct"
+model_id="Qwen/Qwen2-VL-7B-Instruct"
 model_name="Qwen2-VL-7B-Instruct"
 output_path="./logs/${model_name}/${task}/"
 mkdir -p "$output_path"

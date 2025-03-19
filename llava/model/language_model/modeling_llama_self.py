@@ -341,6 +341,10 @@ class DART(LlamaModel):
                         last_layer_state = self.norm(last_layer_state)
                         any_states = layer_outputs[-2]  # HACK: get any_states
 
+                        if self.config.text_length is not None:
+                            text_length = self.config.text_length
+                            image_token_length = any_states.shape[2] - text_length
+
                         # keep index
                         retained_image_tokens_index = self.get_retained_image_token(self.config, last_layer_state, any_states)
 
@@ -349,6 +353,7 @@ class DART(LlamaModel):
                         keep_indexs = keep_indexs.sort().values
 
                         hidden_states = hidden_states[:,keep_indexs,:]
+                        print(f"hidden_states.shape: {hidden_states.shape}")
                         if attention_mask is not None:
                             attention_mask = attention_mask[:,:,:hidden_states.shape[1],:hidden_states.shape[1]]
                         position_ids = keep_indexs.unsqueeze(0)

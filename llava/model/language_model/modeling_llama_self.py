@@ -401,7 +401,7 @@ class DART(LlamaModel):
 
 
         reduction_ratio = DART_config['reduction_ratio']
-        TOKEN_TOPK = math.ceil((MAX_NUM_TRUNCTION if MAX_NUM_TRUNCTION is not None else (image_token_length * reduction_ratio)) // (pivot_image_token + pivot_text_token))
+        TOKEN_TOPK = math.ceil((MAX_NUM_TRUNCTION if MAX_NUM_TRUNCTION is not None else (image_token_length * (1 - reduction_ratio))) // (pivot_image_token + pivot_text_token))
 
         device = last_layer_state.device
 
@@ -409,7 +409,7 @@ class DART(LlamaModel):
             text_length = config.text_length
             image_token_length = any_states.shape[2] - text_length
             retain_token_num_for_llava_next = min(DART_config['retain_token_num_for_llava_next'], image_token_length - pivot_image_token)
-            TOKEN_TOPK = int((retain_token_num_for_llava_next if retain_token_num_for_llava_next is not None else (image_token_length * reduction_ratio))  // (pivot_image_token + pivot_text_token))
+            TOKEN_TOPK = int((retain_token_num_for_llava_next if retain_token_num_for_llava_next is not None else (image_token_length * (1 - reduction_ratio)))  // (pivot_image_token + pivot_text_token))
 
         any_states = any_states.permute(0, 2, 1, 3).reshape(any_states.shape[0], any_states.shape[2], -1)
 

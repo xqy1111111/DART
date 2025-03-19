@@ -2,12 +2,11 @@
 
 export CUDA_VISIBLE_DEVICES=0
 
-CKPT=YOUR_MODEL_PATH
-MODEL=llava-v1.5-7b
+CKPT=YOUR_MODEL_PATH 
+MODEL=llava-v1.6-vicuna-7b
 
 reduction_ratio=$1
 max_num_trunction=$2
-
 
 python -m llava.eval.model_vqa_loader \
     --model-path $CKPT \

@@ -5,7 +5,7 @@ IFS=',' read -ra GPULIST <<< "$gpu_list"
 
 CHUNKS=${#GPULIST[@]}
 
-CKPT="llava-v1.5-7b"
+CKPT="llava-v1.6-vicuna-7b"
 MODEL=YOUR_MODEL_PATH
 
 reduction_ratio=$1

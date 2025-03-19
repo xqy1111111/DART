@@ -27,7 +27,7 @@ Qintong Zhang<sup>2,4</sup>, <br>
 ## 🔥 News
 * **`2025.02.22`** 🤗🤗 We release our latest work [DART](https://arxiv.org/pdf/2502.11494), a plug-and-play, training-free token reduction method that seamlessly integrates with efficient attention operators. [Code](https://github.com/ZichenWen1/DART) is available!
 * **`2025.03.18`** 🤗🤗 We have released the implementation of DART for Qwen2-VL, and now you can easily evaluate it using [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval)!
-
+* **`2025.03.19`** 🤗🤗 The implementation and evaluation scripts for LLaVA-Next are now available!
 
 ## 👀 Overview
 <p align='center'>

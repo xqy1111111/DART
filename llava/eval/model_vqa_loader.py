@@ -48,7 +48,7 @@ def get_chunk(lst, n, k):
 
 # Custom dataset class
 class CustomDataset(Dataset):
-    def __init__(self, questions, image_folder, tokenizer, image_processor, model_config):
+    def __init__(self, questions, image_folder, tokenizer, image_processor, model_config, args):
         self.questions = questions
         self.image_folder = image_folder
         self.tokenizer = tokenizer
@@ -63,6 +63,9 @@ class CustomDataset(Dataset):
             qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
         else:
             qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
+        if '1.6' in get_model_name_from_path(args.model_path) and args.is_textvqa:  # TODO: eval for llava-1.6, follow https://github.com/haotian-liu/LLaVA/issues/1326
+            qs = qs.split('\n')  # [DEFAULT_IMAGE_TOKEN, question, ocr token, format prompt]
+            qs = '\n'.join([qs[0], qs[1], qs[3]])
 
         conv = conv_templates[args.conv_mode].copy()
         conv.append_message(conv.roles[0], qs)
@@ -88,9 +91,9 @@ def collate_fn(batch):
 
 
 # DataLoader
-def create_data_loader(questions, image_folder, tokenizer, image_processor, model_config, batch_size=1, num_workers=4):
+def create_data_loader(questions, image_folder, tokenizer, image_processor, model_config, args, batch_size=1, num_workers=4):
     assert batch_size == 1, "batch_size must be 1"
-    dataset = CustomDataset(questions, image_folder, tokenizer, image_processor, model_config)
+    dataset = CustomDataset(questions, image_folder, tokenizer, image_processor, model_config, args)
     data_loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False, collate_fn=collate_fn)
     return data_loader
 
@@ -114,13 +117,16 @@ def eval_model(args):
         args.conv_mode = args.conv_mode + '_mmtag'
         print(f'It seems that this is a plain model, but it is not using a mmtag prompt, auto switching to {args.conv_mode}.')
 
-    data_loader = create_data_loader(questions, args.image_folder, tokenizer, image_processor, model.config)
+    data_loader = create_data_loader(questions, args.image_folder, tokenizer, image_processor, model.config, args)
 
     for (input_ids, image_tensor, image_sizes), line in tqdm(zip(data_loader, questions), total=len(questions)):
         idx = line["question_id"]
         cur_prompt = line["text"]
 
         input_ids = input_ids.to(device='cuda', non_blocking=True)
+        if '1.6' in model_name: # TODO: eval for llava-1.6 (llava-next)
+            text_length = input_ids.shape[-1] - 1    
+            model.config.text_length = text_length   
 
         with torch.inference_mode():
             output_ids = model.generate(
@@ -171,6 +177,7 @@ if __name__ == "__main__":
     parser.add_argument('--pivot_image_token', type=int, default=4, help='pivot_image_token')
     parser.add_argument('--pivot_text_token', type=int, default=4, help='pivot_text_token')
     parser.add_argument('--retain_token_num_for_llava_next', type=int, default=320, help='retain_token_num_for_llava_next')
+    parser.add_argument('--is_textvqa', default=False, action='store_true', help='is_textvqa')
     args = parser.parse_args()
 
     eval_model(args)

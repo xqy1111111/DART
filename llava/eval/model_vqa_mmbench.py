@@ -127,6 +127,10 @@ def eval_model(args):
 
             image_tensor = process_images([image], image_processor, model.config)[0]
 
+            if '1.6' in model_name: # TODO: eval for llava-1.6 (llava-next)
+                text_length = input_ids.shape[-1] - 1    
+                model.config.text_length = text_length  
+
             with torch.inference_mode():
                 output_ids = model.generate(
                     input_ids,

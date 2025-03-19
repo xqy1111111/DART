@@ -123,9 +123,9 @@ def eval_worker(args, data, eval_id, output_queue):
         stop_str = conv_templates[args.conv_mode].sep if conv_templates[args.conv_mode].sep_style != SeparatorStyle.TWO else conv_templates[args.conv_mode].sep2
         input_ids = input_ids.to(device=device, non_blocking=True)
 
-        if '1.6' in model_name:
-            text_length = input_ids.shape[-1] - 1  # ! for llava 1.6
-            model.config.text_length = text_length # ! for llava 1.6
+        if '1.6' in model_name: # TODO: eval for llava-1.6 (llava-next)
+            text_length = input_ids.shape[-1] - 1    
+            model.config.text_length = text_length  
 
         with torch.inference_mode():
             output_ids = model.generate(

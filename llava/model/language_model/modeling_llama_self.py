@@ -353,7 +353,7 @@ class DART(LlamaModel):
                         keep_indexs = keep_indexs.sort().values
 
                         hidden_states = hidden_states[:,keep_indexs,:]
-                        print(f"hidden_states.shape: {hidden_states.shape}")
+                        # print(f"hidden_states.shape: {hidden_states.shape}")
                         if attention_mask is not None:
                             attention_mask = attention_mask[:,:,:hidden_states.shape[1],:hidden_states.shape[1]]
                         position_ids = keep_indexs.unsqueeze(0)

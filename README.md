@@ -21,7 +21,10 @@ Qintong Zhang<sup>2,4</sup>, <br>
 
 <div align="center">
 
-[![arXiv](https://img.shields.io/badge/Arxiv-2502.11494-AD1C18.svg?logo=arXiv)](https://arxiv.org/pdf/2502.11494) 
+[![arXiv](https://img.shields.io/badge/Arxiv-2502.11494-AD1C18.svg?logo=arXiv)](https://arxiv.org/pdf/2502.11494)
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FZichenWen1%2FDART&count_bg=%23C25AE6&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=Visitor&edge_flat=false)](https://hits.seeyoufarm.com)
+[![GitHub issues](https://img.shields.io/github/issues/ZichenWen1/DART?color=critical&label=Issues)](https://github.com/ZichenWen1/DART/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/ZichenWen1/DART?style=social)](https://github.com/ZichenWen1/DART/stargazers)
 </div>
 
 ## 🔥 News

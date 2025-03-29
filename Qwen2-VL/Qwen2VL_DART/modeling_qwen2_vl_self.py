@@ -346,7 +346,7 @@ class DART(Qwen2VLModel):
                         k_states = layer_outputs[-2]
 
                         # keep index
-                        retained_image_tokens_index = self.get_retained_image_token(self.config, last_layer_state, k_states)
+                        retained_image_tokens_index = self.get_retained_image_token(self.config, last_layer_state, k_states).to(device)
 
                         keep_indexs = torch.cat((torch.arange(image_token_start_index,device=device), retained_image_tokens_index, torch.arange(image_token_start_index+image_token_length,seq_length,device=device)))
                         # sort index

@@ -69,7 +69,7 @@ Please follow the detailed instruction in [LLaVA-Evaluation](https://github.com/
  cd Qwen2-VL/transformers && pip install -e .
  pip install accelerate qwen-vl-utils[decord]
  pip install flash-attn --no-build-isolation
- cd lmms-eval && pip install -e .
+ cd ../../lmms-eval && pip install -e .
 ```
 
 ## 🎯 Usage

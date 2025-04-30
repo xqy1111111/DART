@@ -34,7 +34,7 @@ Qintong Zhang<sup>2,4</sup>, <br>
 
 ## 👀 Overview
 <p align='center'>
-<img src='./images/overview.png' alt='mask' width='1000px'>
+<img src='https://github.com/ZichenWen1/DART/blob/main/images/overview.png' alt='mask' width='1000px'>
 </p>
 
 > **TLDR:** We propose DART (Duplication-Aware Reduction of Tokens), a training-free method that prunes vision tokens based on duplication, achieving 88.9% token reduction and 1.99

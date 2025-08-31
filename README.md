@@ -74,6 +74,12 @@ Please follow the detailed instruction in [LLaVA-Evaluation](https://github.com/
  cd ../../lmms-eval && pip install -e .
 ```
 
+### Qwen2.5-VL
+```bash
+pip install -U transformers==4.55.4
+```
+
+
 ## 🎯 Usage
 ### LLaVA
 ### 📖 Script Templates
@@ -98,6 +104,13 @@ CUDA_VISIBLE_DEVICES=0 bash scripts/v1_5/eval/mme.sh 0.778 128
 ### 🐝 Examples
 ```bash
 cd Qwen2-VL
+bash eval_scripts/lmms_eval.sh True [Reduction_Ratio]
+```
+
+### Qwen2.5-VL
+### 🐝 Examples
+```bash
+cd Qwen2_5-VL
 bash eval_scripts/lmms_eval.sh True [Reduction_Ratio]
 ```
 

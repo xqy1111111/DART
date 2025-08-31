@@ -12,19 +12,31 @@ from tqdm import tqdm
 from transformers import (
     AutoProcessor,
     AutoTokenizer,
-    Qwen2_5_VLForConditionalGeneration,
 )
-
+import sys
+sys.path.append('../../../Qwen2_5-VL/')
+from Qwen2_5VL_DART import Qwen2_5_VLForConditionalGeneration
 from lmms_eval import utils
 from lmms_eval.api.instance import Instance
 from lmms_eval.api.model import lmms
 from lmms_eval.api.registry import register_model
 from lmms_eval.models.model_utils.load_video import read_video_pyav_base64
 
+import logging
+logging.basicConfig(level=logging.ERROR)
+
 try:
     from qwen_vl_utils import process_vision_info
 except ImportError:
     eval_logger.warning("Failed to import qwen_vl_utils; Please install it via `pip install qwen-vl-utils`")
+
+def configure_DART(model, config):
+
+    if config['Sparse']:
+        model.config.text_config.DART_config = config
+
+    else:
+        model.config.text_config.DART_config = None
 
 
 @register_model("qwen2_5_vl")
@@ -48,6 +60,16 @@ class Qwen2_5_VL(lmms):
         use_custom_video_loader: Optional[bool] = False,
         fps: Optional[float] = None,  # Only applicable if use_custom_video_loader is True
         max_image_size: Optional[int] = None,  # Only applicable if use_custom_video_loader is True
+
+        attn_implementation="flash_attention_2",
+        Sparse=True,
+        pruned_layer=2,
+        image_token_start_index=0,
+        image_token_length=0,
+        max_num_trunction=0,
+        reduction_ratio=0.778,
+        pivot_image_token=4,
+        pivot_text_token=4,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -88,6 +110,20 @@ class Qwen2_5_VL(lmms):
         self.max_num_frames = max_num_frames
         self.processor = AutoProcessor.from_pretrained(pretrained, max_pixels=max_pixels, min_pixels=min_pixels)
         self._tokenizer = AutoTokenizer.from_pretrained(pretrained)
+
+        DART_config = {
+            "Sparse": Sparse,
+            "K": pruned_layer,
+            "image_token_start_index": image_token_start_index,
+            "image_token_length": image_token_length,
+            "max_num_trunction": max_num_trunction,
+            "reduction_ratio": reduction_ratio,
+            "pivot_image_token": pivot_image_token,
+            "pivot_text_token": pivot_text_token,
+        }
+        configure_DART(self._model, DART_config) # HACK
+
+
 
         self._config = self.model.config
         self.batch_size_per_gpu = int(batch_size)
@@ -292,6 +328,16 @@ class Qwen2_5_VL(lmms):
 
             pad_token_id = self.tokenizer.pad_token_id
 
+    
+            if self.config.text_config.DART_config is not None:
+                # HACK
+                image_token_start_index = inputs.input_ids.tolist()[0].index(151655)
+                image_token_end_index = inputs.input_ids.tolist()[0].index(151653)
+                image_token_length = image_token_end_index - image_token_start_index
+                self.config.text_config.DART_config['image_token_start_index'] = image_token_start_index
+                self.config.text_config.DART_config['image_token_length'] = image_token_length
+                # HACK
+
             cont = self.model.generate(
                 **inputs,
                 eos_token_id=self.tokenizer.eos_token_id,
@@ -306,6 +352,9 @@ class Qwen2_5_VL(lmms):
 
             generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, cont)]
             answers = self.processor.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+            
+            print(f"answers: {answers}")
+            
             for i, ans in enumerate(answers):
                 answers[i] = ans
 

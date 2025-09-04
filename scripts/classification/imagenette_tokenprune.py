@@ -131,7 +131,9 @@ class TokenPruningViT(nn.Module):
         return top_indices + 1  # +1 for cls token offset
 
     def prune_tokens(self, x):
-        """Apply token pruning based on method"""
+        """Apply token pruning based on method.
+        Important: select tokens per-sample, not based only on the first sample.
+        """
         if self.method == 'none' or self.ratio == 0.0:
             return x
 
@@ -143,20 +145,24 @@ class TokenPruningViT(nn.Module):
         if isinstance(max_keep, int) and max_keep > 0:
             n_keep = min(n_keep, max_keep)
 
-        if self.method == 'dart':
-            retained_indices = self.get_retained_tokens_dart(x, n_keep)
-        elif self.method == 'random':
-            retained_indices = self.get_retained_tokens_random(x, n_keep)
-        elif self.method == 'knorm':
-            retained_indices = self.get_retained_tokens_knorm(x, n_keep)
-        else:
-            raise ValueError(f"Unknown method: {self.method}")
+        # Build new sequence per sample
+        out_list = []
+        for b in range(B):
+            xb = x[b:b+1]  # [1, N_total, D]
+            if self.method == 'dart':
+                retained_indices = self.get_retained_tokens_dart(xb, n_keep)
+            elif self.method == 'random':
+                retained_indices = self.get_retained_tokens_random(xb, n_keep)
+            elif self.method == 'knorm':
+                retained_indices = self.get_retained_tokens_knorm(xb, n_keep)
+            else:
+                raise ValueError(f"Unknown method: {self.method}")
 
-        # Keep cls token + selected patch tokens
-        cls_token = x[:, 0:1, :]  # [B, 1, D]
-        selected_patches = x[:, retained_indices, :]  # [B, n_keep, D]
+            cls_token = xb[:, 0:1, :]                 # [1, 1, D]
+            selected_patches = xb[:, retained_indices, :]  # [1, n_keep, D]
+            out_list.append(torch.cat([cls_token, selected_patches], dim=1))
 
-        return torch.cat([cls_token, selected_patches], dim=1)
+        return torch.cat(out_list, dim=0)
 
     def forward(self, x):
         """Forward pass with token pruning"""
@@ -384,6 +390,14 @@ def main():
     ).to(args.device)
     # Attach max_num_trunction to model for pruning cap
     setattr(model, 'max_num_trunction', args.max_num_trunction)
+
+    # Optionally load a pretrained/fine-tuned checkpoint for fair evaluation
+    if args.load_checkpoint and os.path.exists(args.load_checkpoint):
+        print(f"Loading checkpoint from: {args.load_checkpoint}")
+        ckpt = torch.load(args.load_checkpoint, map_location=args.device)
+        state_dict = ckpt.get('model_state_dict', ckpt)
+        missing, unexpected = model.load_state_dict(state_dict, strict=False)
+        print(f"Checkpoint loaded. missing={len(missing)}, unexpected={len(unexpected)}")
 
     print(f"Loading data from: {args.data_dir}")
     train_loader, val_loader = get_data_loaders(

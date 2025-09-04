@@ -1,0 +1,47 @@
+{
+  "datasets": [
+    {
+      "name": "imagenette2-160",
+      "download": {
+        "type": "fastai",
+        "url": "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-160.tgz"
+      }
+    },
+    {
+      "name": "imagewoof2-160",
+      "download": {
+        "type": "fastai",
+        "url": "https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2-160.tgz"
+      }
+    }
+  ],
+  "model": "vit_base_patch16_224",
+  "methods": ["dart", "random", "knorm"],
+  "reduction_ratios": [0.667, 0.778, 0.889],
+  "pivot_image_token": 8,
+  "pivot_text_token": 0,
+  "max_num_trunction": 0,
+  "prune_layer_policy": {
+    "type": "relative",
+    "value": 0.5
+  },
+  "train": {
+    "epochs": 3,
+    "freeze_backbone": true,
+    "lr": 0.0005,
+    "weight_decay": 0.05
+  },
+  "eval": {
+    "img_size": 224,
+    "batch_size": 128,
+    "num_workers": 8,
+    "seed": 42
+  },
+  "compute": {
+    "gpu_list": [0, 1, 2, 3, 4, 5, 6, 7]
+  },
+  "save": {
+    "results_root": "results",
+    "checkpoints_root": "checkpoints"
+  }
+}

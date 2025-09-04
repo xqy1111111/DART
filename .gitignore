@@ -33,3 +33,7 @@ ckpts*
 
 # Demo
 serve_images/
+
+# Track experiment configs under experiments/
+!experiments/*.json
+!experiments/**/*.json

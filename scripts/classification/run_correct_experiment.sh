@@ -22,6 +22,8 @@ PIVOT_TEXT=$(jq -r '.pivot_text_token // 0' "$CONFIG_PATH")
 MAX_TRUNC=$(jq -r '.max_num_trunction // 0' "$CONFIG_PATH")
 PRUNE_POLICY_TYPE=$(jq -r '.prune_layer_policy.type' "$CONFIG_PATH")
 PRUNE_POLICY_VALUE=$(jq -r '.prune_layer_policy.value' "$CONFIG_PATH")
+GPU_LIST=($(jq -r '.compute.gpu_list[]' "$CONFIG_PATH"))
+GPU_COUNT=${#GPU_LIST[@]}
 
 mkdir -p "$RESULTS_ROOT" "$CKPT_ROOT" "$DATA_ROOT"
 
@@ -83,25 +85,30 @@ for ((i=0; i<LEN; i++)); do
   mkdir -p "$RES_DIR" "$CK_DIR"
   
   echo "Training baseline for $NAME..."
-  CUDA_VISIBLE_DEVICES=0 TRAIN_EPOCHS=3 python scripts/classification/imagenette_tokenprune.py \
+  gpu=${GPU_LIST[$((i % GPU_COUNT))]}
+  CUDA_VISIBLE_DEVICES=$gpu TRAIN_EPOCHS=3 python scripts/classification/imagenette_tokenprune.py \
     --data-dir "$DATA_ROOT/$NAME" \
     --results-dir "$RES_DIR" \
     --checkpoint-dir "$CK_DIR" \
     --model $MODEL --method none --reduction-ratio 0.0 \
     --pivot-image-token $PIVOT_IMAGE --pivot-text-token $PIVOT_TEXT --max-num-trunction $MAX_TRUNC \
-    --prune-layer $PRUNE_LAYER --img-size $IMG_SIZE --batch-size $BATCH_SIZE --num-workers $NUM_WORKERS --seed $SEED
-  
+    --prune-layer $PRUNE_LAYER --img-size $IMG_SIZE --batch-size $BATCH_SIZE --num-workers $NUM_WORKERS --seed $SEED &
+  PIDS+=($!)
+
   # Store baseline checkpoint path
-  BASELINE_CKPT="$CK_DIR/vit_base_patch16_224_none_ratio0.0_layer6_seed42.pth"
+  BASELINE_CKPT="$CK_DIR/vit_base_patch16_224_none_ratio0.0_layer$PRUNE_LAYER_seed$SEED.pth"
   BASELINE_CKPTS+=("$BASELINE_CKPT")
-  echo "Baseline checkpoint saved: $BASELINE_CKPT"
+  echo "Baseline checkpoint saved (expected path): $BASELINE_CKPT"
+done
+
+# Wait baselines to finish before eval
+for pid in "${PIDS[@]}"; do
+  wait $pid
 done
 
 echo "=== PHASE 2: Evaluating all pruning methods with frozen weights ==="
 export TRAIN_EPOCHS=0
 
-GPU_LIST=(0 1 2 3 4 5 6 7)
-GPU_COUNT=${#GPU_LIST[@]}
 JOB_ID=0
 PIDS=()
 

@@ -370,6 +370,8 @@ def main():
 
     # Prefer reduction_ratio if provided
     rr = args.reduction_ratio if args.reduction_ratio is not None else args.ratio
+    # Ensure downstream file naming and CSV use the actual reduction ratio
+    args.ratio = rr
 
     print(f"Creating model: {args.model} with method: {args.method}, reduction_ratio: {rr}")
     model = TokenPruningViT(

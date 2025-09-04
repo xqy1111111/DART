@@ -34,7 +34,7 @@ GPU_LIST=($(jq -r '.compute.gpu_list[]' "$CONFIG_PATH"))
 
 mkdir -p "$RESULTS_ROOT" "$CKPT_ROOT" "$DATA_ROOT"
 
-# Download datasets
+# Download datasets with robust curl retry and tar validation
 LEN=$(jq '.datasets | length' "$CONFIG_PATH")
 for ((i=0; i<LEN; i++)); do
   NAME=$(jq -r ".datasets[$i].name" "$CONFIG_PATH")
@@ -42,7 +42,20 @@ for ((i=0; i<LEN; i++)); do
   if [ ! -d "$DATA_ROOT/$NAME" ]; then
     echo "Downloading $NAME ..."
     pushd "$DATA_ROOT" >/dev/null
-    wget -q "$URL" && tar xf "$(basename $URL)"
+    FNAME=$(basename "$URL")
+    # Retry downloads and show progress
+    curl -L --retry 10 --retry-all-errors --connect-timeout 30 -o "$FNAME" "$URL"
+    # Validate archive
+    if ! tar tf "$FNAME" >/dev/null 2>&1; then
+      echo "Corrupted archive $FNAME, retrying with aria2c if available..."
+      if command -v aria2c >/dev/null 2>&1; then
+        aria2c -x 16 -s 16 -k 1M "$URL" -o "$FNAME"
+        tar tf "$FNAME" >/dev/null 2>&1 || { echo "Archive validation failed for $FNAME"; exit 1; }
+      else
+        echo "aria2c not found and archive invalid. Please install aria2c or check network."; exit 1
+      fi
+    fi
+    tar xf "$FNAME"
     popd >/dev/null
   fi
   echo "Dataset ready: $DATA_ROOT/$NAME"
@@ -64,6 +77,13 @@ PY
 else
   PRUNE_LAYER=$PRUNE_POLICY_VALUE
 fi
+
+# One-time warmup to cache timm weights (avoid parallel download stalls)
+CUDA_VISIBLE_DEVICES=${GPU_LIST[0]} python - <<'PY' 2>/dev/null || true
+import timm
+m = timm.create_model('vit_base_patch16_224', pretrained=True, num_classes=10)
+print('timm weights cached OK')
+PY
 
 # Export training envs
 export TRAIN_EPOCHS=$TRAIN_EPOCHS

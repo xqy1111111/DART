@@ -24,6 +24,7 @@ PRUNE_POLICY_TYPE=$(jq -r '.prune_layer_policy.type' "$CONFIG_PATH")
 PRUNE_POLICY_VALUE=$(jq -r '.prune_layer_policy.value' "$CONFIG_PATH")
 GPU_LIST=($(jq -r '.compute.gpu_list[]' "$CONFIG_PATH"))
 GPU_COUNT=${#GPU_LIST[@]}
+echo "GPU_LIST=${GPU_LIST[@]} (count=$GPU_COUNT)"
 
 mkdir -p "$RESULTS_ROOT" "$CKPT_ROOT" "$DATA_ROOT"
 
@@ -95,10 +96,10 @@ for ((i=0; i<LEN; i++)); do
     --prune-layer $PRUNE_LAYER --img-size $IMG_SIZE --batch-size $BATCH_SIZE --num-workers $NUM_WORKERS --seed $SEED &
   PIDS+=($!)
 
-  # Store baseline checkpoint path
-  BASELINE_CKPT="$CK_DIR/vit_base_patch16_224_none_ratio0.0_layer$PRUNE_LAYER_seed$SEED.pth"
+  # Store baseline checkpoint path (do not rely on shell var expansion inside filename)
+  BASELINE_CKPT="$CK_DIR/$(basename $MODEL)_none_ratio0.0_layer${PRUNE_LAYER}_seed${SEED}.pth"
   BASELINE_CKPTS+=("$BASELINE_CKPT")
-  echo "Baseline checkpoint saved (expected path): $BASELINE_CKPT"
+  echo "Baseline checkpoint expected path: $BASELINE_CKPT"
 done
 
 # Wait baselines to finish before eval
@@ -126,7 +127,7 @@ for ((i=0; i<LEN; i++)); do
       gpu=${GPU_LIST[$((JOB_ID % GPU_COUNT))]}
       echo "[GPU $gpu] $NAME $MODEL $method ratio=$ratio (frozen weights)"
       CUDA_VISIBLE_DEVICES=$gpu python scripts/classification/imagenette_tokenprune.py \
-        --data-dir "$DATA_ROOT/$NAME" \
+        --data-dir "$DATA_ROOT/$NAME" \c n m
         --results-dir "$RES_DIR" \
         --checkpoint-dir "$CK_DIR" \
         --model $MODEL --method $method --reduction-ratio $ratio \

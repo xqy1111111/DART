@@ -44,14 +44,33 @@ class TokenPruningViT(nn.Module):
         self.num_layers = len(self.base_model.blocks)
         self.embed_dim = self.base_model.embed_dim
 
-        # Hook for extracting features at prune layer
+        # Hooks for extracting states at prune layer
         self.features = {}
+        self.k_states = None  # will store K states (B, N_total, embed_dim)
         if method != 'none':
+            # Capture block output (optional)
             self.base_model.blocks[prune_layer].register_forward_hook(self._hook_fn)
+            # Capture attention qkv to extract K states at prune layer
+            attn_qkv = self.base_model.blocks[prune_layer].attn.qkv
+            attn_qkv.register_forward_hook(self._qkv_hook)
 
-    def _hook_fn(self, module, input, output):
+    def _hook_fn(self, _module, _input, output):
         """Hook to capture intermediate features"""
         self.features['layer_output'] = output
+
+    def _qkv_hook(self, _module, _inputs, output):
+        """Hook to capture K states from the attention qkv linear at prune layer.
+        output: tensor of shape (B, N, 3*embed_dim). We take the middle third as K.
+        """
+        try:
+            qkv = output  # (B, N, 3*D)
+            _, _, threeD = qkv.shape
+            D = threeD // 3
+            k = qkv[:, :, D:2*D]  # (B, N, D)
+            self.k_states = k.detach()
+        except Exception:
+            # Fallback: do not crash if shape unexpected
+            self.k_states = None
 
     def get_retained_tokens_dart(self, x, n_keep):
         """DART-style token selection based on duplication"""
@@ -150,7 +169,7 @@ class TokenPruningViT(nn.Module):
         for b in range(B):
             xb = x[b:b+1]  # [1, N_total, D]
             if self.method == 'dart':
-                retained_indices = self.get_retained_tokens_dart(xb, n_keep)
+                retained_indices = self.get_retained_tokens_dart(xb, n_keep, b_idx=b)
             elif self.method == 'random':
                 retained_indices = self.get_retained_tokens_random(xb, n_keep)
             elif self.method == 'knorm':

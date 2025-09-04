@@ -18,12 +18,12 @@
   "model": "vit_base_patch16_224",
   "methods": ["dart", "random", "knorm"],
   "reduction_ratios": [0.667, 0.778, 0.889],
-  "pivot_image_token": 8,
+  "pivot_image_token": 4,
   "pivot_text_token": 0,
   "max_num_trunction": 0,
   "prune_layer_policy": {
-    "type": "relative",
-    "value": 0.5
+    "type": "absolute",
+    "value": 2
   },
   "train": {
     "epochs": 3,

@@ -72,55 +72,71 @@ class TokenPruningViT(nn.Module):
             # Fallback: do not crash if shape unexpected
             self.k_states = None
 
-    def get_retained_tokens_dart(self, x, n_keep):
-        """DART-style token selection based on duplication"""
-        # x shape: [B, N+1, D] where N is num_patches, +1 for cls token
-        B, N_total, D = x.shape
+    def get_retained_tokens_dart(self, x, n_keep, b_idx=None):
+        """DART token selection strictly per project/论文。
+        分类设置：image_token_start_index=1，image_token_length=N_patches。
+        - 在注意力 K-states 上按 L1 范数选 pivot_image_token 个图像 pivot；
+        - TOKEN_TOPK = ceil((max_num_trunction 或 N_patches*(1-ratio)) / (pivot_image_token + pivot_text_token))；
+        - 用当前层隐状态 last_layer_state 的余弦不相似度，从候选中为每个 pivot 选 TOKEN_TOPK 个 token，集合去重并从候选删除。
+        参数 x 形状为 (1, N_total, D)。
+        """
+        B, N_total, _ = x.shape
+        assert B == 1, "get_retained_tokens_dart expects a single-sample tensor"
         N_patches = N_total - 1  # exclude cls token
-
-        if n_keep >= N_patches:
+        if n_keep >= N_patches or N_patches <= 0:
             return torch.arange(1, N_total, device=x.device)
 
-        # Extract patch tokens (exclude cls)
-        patch_tokens = x[:, 1:, :]  # [B, N, D]
+        # Compute TOKEN_TOPK per project
+        pivots = max(1, int(self.pivot_tokens))
+        if hasattr(self, 'max_num_trunction') and isinstance(self.max_num_trunction, int) and self.max_num_trunction > 0:
+            numer = self.max_num_trunction
+        else:
+            numer = int(N_patches * (1 - self.ratio))
+        token_topk = int(math.ceil(numer / pivots)) if numer > 0 else 0
 
-        # Select pivot tokens using L1 norm
-        norms = torch.norm(patch_tokens[0], p=1, dim=-1)  # [N]
-        pivot_indices = norms.topk(self.pivot_tokens).indices
+        # Feature spaces
+        # Preferred: K-states from qkv hook; Fallback: hidden features
+        if self.k_states is not None and b_idx is not None and b_idx < self.k_states.shape[0]:
+            k_feats = self.k_states[b_idx, 1:, :]        # (N_patches, D)
+        else:
+            k_feats = x[0, 1:, :]
 
-        # Calculate cosine similarity between all tokens and pivots
-        all_indices = set(range(N_patches))
-        selected_indices = set(pivot_indices.tolist())
+        # Last layer hidden for cosine dissimilarity（按项目在当前层归一/规范化后使用）
+        last_feats_all = x  # (1, N_total, D)
+        try:
+            last_feats_all = self.base_model.norm(last_feats_all)
+        except Exception:
+            pass
+        last_feats = last_feats_all[0]                   # (N_total, D)
 
-        # For each pivot, find most dissimilar tokens
-        remaining_indices = list(all_indices - selected_indices)
-        tokens_per_pivot = (n_keep - len(selected_indices)) // self.pivot_tokens
+        # Pivot selection on K-states by L1 norm top-k（图像侧）
+        k_norms_L1 = torch.norm(k_feats, p=1, dim=-1)   # (N_patches,)
+        p = min(pivots, N_patches)
+        pivot_patch_idx = k_norms_L1.topk(p).indices.tolist()          # [0..N_patches-1]
+        pivot_abs_idx = [idx + 1 for idx in pivot_patch_idx]           # +1 skip cls
 
-        for pivot_idx in pivot_indices:
-            if len(remaining_indices) == 0:
+        # Candidate pool of image tokens (absolute indices 1..N_total-1)
+        indices_set = set(pivot_abs_idx)
+        valid_indices = set(range(1, N_total)) - set(pivot_abs_idx)
+        valid_list = list(valid_indices)
+
+        # Expand per pivot using cosine dissimilarity on last layer hidden
+        for item in list(indices_set):
+            if not valid_list or token_topk == 0:
                 break
+            valid_vectors = last_feats[valid_list, :]                 # (R, D)
+            cos_sim = -F.cosine_similarity(last_feats[item, :].unsqueeze(0), valid_vectors, dim=-1)
+            k_take = min(token_topk, len(valid_list))
+            if k_take <= 0:
+                break
+            top_k_local = cos_sim.topk(k_take).indices
+            chosen_abs = [valid_list[i] for i in top_k_local]
+            indices_set.update(chosen_abs)
+            # remove selected from candidates
+            valid_indices.difference_update(chosen_abs)
+            valid_list = list(valid_indices)
 
-            pivot_token = patch_tokens[0, pivot_idx, :]  # [D]
-            remaining_tokens = patch_tokens[0, remaining_indices, :]  # [R, D]
-
-            # Cosine similarity (negative for dissimilarity)
-            cos_sim = F.cosine_similarity(pivot_token.unsqueeze(0), remaining_tokens, dim=-1)
-            dissimilar_indices = (-cos_sim).topk(min(tokens_per_pivot, len(remaining_indices))).indices
-
-            # Add most dissimilar tokens
-            for idx in dissimilar_indices:
-                selected_indices.add(remaining_indices[idx])
-
-            # Remove selected from remaining
-            remaining_indices = [idx for i, idx in enumerate(remaining_indices)
-                               if i not in dissimilar_indices]
-
-        # Fill remaining slots if needed
-        while len(selected_indices) < n_keep and remaining_indices:
-            selected_indices.add(remaining_indices.pop(0))
-
-        # Convert to tensor and add 1 for cls token offset
-        retained_indices = torch.tensor(sorted(list(selected_indices)), device=x.device) + 1
+        retained_indices = torch.tensor(sorted(list(indices_set)), device=x.device)
         return retained_indices
 
     def get_retained_tokens_random(self, x, n_keep):
@@ -135,17 +151,24 @@ class TokenPruningViT(nn.Module):
         patch_indices = torch.randperm(N_patches, device=x.device)[:n_keep]
         return patch_indices + 1  # +1 for cls token offset
 
-    def get_retained_tokens_knorm(self, x, n_keep):
-        """K-norm based token selection"""
-        B, N_total, D = x.shape
+    def get_retained_tokens_knorm(self, x, n_keep, b_idx=None):
+        """K-Norm selection strictly aligned with project:
+        - Selection space: image tokens only (indices 1..N_total-1)
+        - Feature space: prefer K-states (attention K); fallback to hidden
+        - Score: L1 norm (aligned with pivot selection)
+        - Count: top n_keep
+        """
+        B, N_total, _ = x.shape
+        assert B == 1, "get_retained_tokens_knorm expects a single-sample tensor"
         N_patches = N_total - 1
-
-        if n_keep >= N_patches:
+        if n_keep >= N_patches or N_patches <= 0:
             return torch.arange(1, N_total, device=x.device)
 
-        # Use L1 norm of patch tokens
-        patch_tokens = x[:, 1:, :]  # [B, N, D]
-        norms = torch.norm(patch_tokens[0], p=1, dim=-1)  # [N]
+        if self.k_states is not None and b_idx is not None and b_idx < self.k_states.shape[0]:
+            feats = self.k_states[b_idx, 1:, :]  # (N_patches, D)
+        else:
+            feats = x[0, 1:, :]
+        norms = torch.norm(feats, p=1, dim=-1)  # L1 consistent with project
         top_indices = norms.topk(n_keep).indices
         return top_indices + 1  # +1 for cls token offset
 
